@@ -3,3 +3,10 @@ spring:
     url: jdbc:postgresql://localhost:5432/trackpicture
     username: trackpicture
     password: trackpicture
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: track-picture-service
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer

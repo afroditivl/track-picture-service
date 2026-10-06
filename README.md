@@ -117,10 +117,12 @@ Topic: **`track-updates`**. Key: **`trackId`** (recommended). Value: JSON:
 `messageId` is an application idempotency key (not in the original sensor payload; added so
 duplicates/redelivery are safe). `identity`: `UNKNOWN`, `FRIEND`, `NEUTRAL`, `HOSTILE`.
 
-## API
+## API (http://localhost:8080)
 
 | Method | Path                                  | Description                                                        |
 |--------|---------------------------------------|--------------------------------------------------------------------|
+| GET    | `/actuator/health`                    | Application health (`status`: UP or DOWN)                          |
+| GET    | `/actuator/prometheus`                | Prometheus scrape format (Micrometer metrics)                      |
 | GET    | `/picture`                            | All tracks in the current picture                                  |
 | GET    | `/tracks/{trackId}`                   | Latest state; 404 if unknown                                       |
 | GET    | `/tracks/{trackId}/history?from=&to=` | History rows; optional ISO-8601 UTC filters; 400 on bad timestamps |

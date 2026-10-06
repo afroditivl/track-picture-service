@@ -24,7 +24,7 @@ public class TrackUpdateListener {
     this.processor = processor;
   }
 
-  @KafkaListener(topics = TOPIC, groupId = "track-picture-service")
+  @KafkaListener(topics = TOPIC)
   public void onMessage(String payload) {
     TrackUpdate update;
     try {

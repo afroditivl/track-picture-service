@@ -82,18 +82,71 @@ curl -i http://localhost:8080/tracks/T-404
 
 Expect **`HTTP/1.1 404`**.
 
-
-
 ### Stop
 
-**9.** In Terminal 1, press **`Ctrl+C`** to stop the app.
+**7.** In Terminal 1, press **`Ctrl+C`** to stop the app.
 
-**10.** Navigate to the project root and shut down containers:
+**8.** Navigate to the project root and shut down containers:
 
 ```
 cd /path/to/track-picture-service
 docker compose down
 ```
+
+---
+
+## Architecture
+
+```
+  demo-producer ──► Kafka (track-updates) ──► TrackUpdateListener
+                                                    │
+                                                    ▼
+                                           TrackUpdateProcessor
+                                              /          \
+                                             ▼            ▼
+                                      PictureStore   HistoryRepository
+                                      (in-memory)    (PostgreSQL)
+                                             \            /
+                                              ▼          ▼
+                                         TrackController (REST)
+                                              +
+                                    Actuator (health, prometheus)
+```
+
+One Spring Boot process: Kafka consumer and HTTP API in the same JVM.
+
+## Design decisions
+
+| Area             | Choice                                                                  | Why                                                                           |
+|------------------|-------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| Picture          | In-memory map (`PictureStore`)                                          | Fast reads; assignment allows holding latest state in memory                  |
+| History          | PostgreSQL + JDBC                                                       | Durable audit trail; query by track and optional time range                   |
+| Idempotency      | `message_id` primary key, `ON CONFLICT DO NOTHING`                      | Same `messageId` twice -> one history row; safe redelivery                    |
+| Ordering         | Per-`trackId` lock; picture updated only if timestamp is strictly newer | Out-of-order updates still stored in history but do not roll back the picture |
+| Invalid messages | Log and skip (no dead-letter topic)                                     | Keeps scope small; see out of scope below                                     |
+| Schema           | `CREATE TABLE IF NOT EXISTS` on startup                                 | No migration tool for this exercise                                           |
+| Tests            | Unit tests on validator and processor                                   | Covers validation rules and ordering/idempotency without Docker               |
+
+## Trade-offs
+
+- **Picture is empty after restart** — not rebuilt from Kafka (stretch goal not implemented).
+- **Invalid updates are only logged** — not routed to a dead-letter topic; harder to inspect
+  failures in ops tooling.
+- **No consumer lag metric** — Prometheus exposes standard JVM/HTTP/Kafka client metrics; lag is not
+  computed as a dedicated gauge.
+- **Local credentials in `application.yml`** — acceptable for docker-compose demo only, not for
+  production.
+- **No integration tests** — manual runbook + unit tests on core logic; no Testcontainers end-to-end
+  suite.
+
+## Out of scope (with more time)
+
+- Dead-letter Kafka topic for invalid messages (instead of log-only).
+- Rebuild in-memory picture from `track-updates` on startup.
+- More metrics or dashboard on top of Prometheus. eg track_updates_processed_total,
+  track_updates_rejected_total, track_update_processing_seconds (for latency)
+- Increate the unit tests coverage (and a JdbcTest for the queries).
+- Add javadocs to public classes/methods.
 
 ---
 

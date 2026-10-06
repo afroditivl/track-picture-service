@@ -14,10 +14,6 @@ import org.springframework.stereotype.Repository;
 @Repository
 public class HistoryRepository {
 
-  // afro here: check queries - do constant actually help?
-  // Maybe also create constant for the columns to avoid typos etc (maybe needed only if i will add
-  // more queries)
-  // MINOR
   private static final String TABLE = "track_history";
 
   private static final RowMapper<TrackUpdate> ROW_MAPPER =
